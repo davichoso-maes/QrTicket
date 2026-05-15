@@ -1,0 +1,26 @@
+C4Container
+  title Diagrama de Contenedores - QrTicket
+  Person(organizer, "Organizador")
+  Person(attendee, "Asistente")
+  Person(guard, "Guardia")
+  System_Boundary(qrticket, "QrTicket") {
+    Container(web, "Dashboard + Landing", "Next.js / React / TypeScript", "UI administrativa y pública")
+    Container(api, "Core API", "Next.js API / TypeScript", "Reglas de negocio, autenticación, endpoints REST")
+    ContainerDb(db, "Base central", "PostgreSQL 16", "Eventos, órdenes, pagos, tickets, accesos")
+    Container(worker, "Async worker", "TypeScript queue worker", "Emisión, notificaciones, conciliación")
+    Container(mobile, "App de guardias", "React Native / Expo", "Escaneo y sync offline")
+    ContainerDb(sqlite, "SQLite local", "SQLite", "Tickets descargados y escaneos pendientes")
+  }
+  System_Ext(bank, "Proveedor QR / Banco")
+  System_Ext(msg, "WhatsApp / Email")
+  Rel(organizer, web, "Usa", "HTTPS")
+  Rel(attendee, web, "Compra y consulta", "HTTPS")
+  Rel(guard, mobile, "Escanea", "Touch")
+  Rel(web, api, "Consume", "HTTPS / REST + JWT")
+  Rel(api, db, "Lee/escribe", "TCP/TLS")
+  Rel(api, worker, "Publica jobs", "Queue")
+  Rel(worker, db, "Lee/escribe", "TCP/TLS")
+  Rel(api, bank, "Crear cobro / verificar webhook", "HTTPS firmado")
+  Rel(worker, msg, "Envía notificaciones", "HTTPS")
+  Rel(mobile, api, "Sync dataset / valida tickets", "HTTPS + JWT")
+  Rel(mobile, sqlite, "Lee/escribe", "SQLite local")

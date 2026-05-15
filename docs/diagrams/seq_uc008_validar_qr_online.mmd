@@ -1,0 +1,28 @@
+sequenceDiagram
+  %% Diagrama de secuencia FSD-UC-008 - Validar ticket QR online
+  autonumber
+  participant G as Guardia
+  participant APP as App guardias
+  participant API as Core API
+  participant DB as PostgreSQL
+  participant LOG as Audit Log
+
+  G->>APP: Escanea QR (token)
+  APP->>API: POST /access/validate (token, eventId, guardId, gate)
+  API->>API: Verificar firma del token
+  API->>DB: SELECT ticket por id
+  alt ticket válido y no usado
+    DB-->>API: ticket activo
+    API->>DB: UPDATE ticket SET status=used, used_at=now()
+    API->>LOG: result=valid, mode=online
+    API-->>APP: { result: valid, name, ticketType, time }
+    APP-->>G: Verde + nombre + tipo
+  else ticket usado
+    API->>LOG: result=used
+    API-->>APP: { result: used, reason: TICKET_ALREADY_USED }
+    APP-->>G: Rojo + motivo
+  else evento incorrecto
+    API->>LOG: result=wrong_event
+    API-->>APP: { result: invalid, reason: WRONG_EVENT }
+    APP-->>G: Rojo + motivo
+  end

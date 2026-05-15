@@ -1,0 +1,22 @@
+sequenceDiagram
+  %% Diagrama de secuencia FSD-UC-004 - Generar orden de compra y QR de pago
+  autonumber
+  participant U as Asistente
+  participant WEB as Landing/Checkout
+  participant API as Core API
+  participant DB as PostgreSQL
+  participant PAY as Adaptador QR
+  participant BANK as Proveedor QR
+
+  U->>WEB: Selecciona ticket y cantidad
+  WEB->>API: POST /orders (eventId, ticketTypeId, buyer)
+  API->>DB: Validar cupo y reservar temporalmente
+  DB-->>API: Cupo reservado (TTL = expires_at)
+  API->>DB: Crear orden status=pending
+  API->>PAY: createPaymentQr(orderId, amount)
+  PAY->>BANK: Solicitar QR de cobro
+  BANK-->>PAY: paymentReference + payload QR
+  PAY-->>API: Referencia + QR
+  API->>DB: Persistir payments(status=pending, reference)
+  API-->>WEB: { orderId, paymentReference, paymentQr }
+  WEB-->>U: Mostrar QR escaneable y countdown

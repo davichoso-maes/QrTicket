@@ -1,0 +1,13 @@
+flowchart LR
+  %% C4 Nivel 3 (componentes) del contenedor Core API para flujo compra-pago-ticket
+  %% Trazabilidad: FSD-UC-004 (orden + QR pago) y FSD-UC-005 (confirmar pago + emitir ticket)
+  A[Checkout UI<br/>Next.js] --> B[Orders Module]
+  B --> C[Payments Adapter]
+  C --> D[(PostgreSQL)]
+  C --> E[QR Provider<br/>Adapter]
+  E --> F[Webhook Handler]
+  F --> G[Ticket Issuer<br/>idempotente]
+  G --> D
+  G --> H[Notification Service]
+  G --> I[Audit Log]
+  F -. firma .-> J[Signature Verifier]

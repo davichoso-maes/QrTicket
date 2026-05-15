@@ -1,0 +1,38 @@
+gantt
+  title Roadmap MVP - QrTicket release 1.0.0
+  dateFormat  YYYY-MM-DD
+  axisFormat  %b %d
+  excludes    weekends
+
+  section Discovery
+  Entrevistas a organizadores         :done,    d1, 2026-04-20, 7d
+  Validación de hipótesis MRD         :done,    d2, after d1, 5d
+
+  section Fase 1 - Core MVP
+  Setup repo + AGENTS.md              :done,    f1, 2026-05-04, 3d
+  Modelado de datos + Prisma          :done,    f2, after f1, 4d
+  Módulo de eventos (UC-001..003)     :active,  f3, after f2, 7d
+  Configuración de tickets (UC-002)   :         f4, after f3, 4d
+  Landing pública (UC-003)            :         f5, after f3, 4d
+  Checkout + QR de pago (UC-004)      :         f6, after f4, 6d
+  Webhook + emisión idempotente (UC-005):       f7, after f6, 5d
+  Recuperación de tickets (UC-006)    :         f8, after f7, 3d
+
+  section Fase 1 - App Guardias
+  Login + eventos asignados (UC-007)  :         g1, 2026-06-15, 4d
+  Sync offline SQLite                 :         g2, after g1, 6d
+  Validación online (UC-008)          :         g3, after g2, 5d
+  Validación offline + reconciliación (UC-009): g4, after g3, 6d
+
+  section Reportes y QA
+  Dashboard de evento (UC-010)        :         r1, 2026-07-10, 5d
+  Pruebas de carga (NFR-008)          :crit,    r2, after r1, 4d
+  Auditoría seguridad (NFR-005/006)   :crit,    r3, after r2, 3d
+
+  section Cierre release 1.0.0
+  Piloto evento real                  :milestone, m1, 2026-08-01, 0d
+  Release 1.0.0                       :milestone, m2, 2026-08-15, 0d
+
+  section Fase 2 (post-release)
+  WhatsApp bot transaccional          :         p1, 2026-08-20, 30d
+  App asistentes                      :         p2, 2026-09-01, 45d

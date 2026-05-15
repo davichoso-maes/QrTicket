@@ -1,0 +1,36 @@
+sequenceDiagram
+  %% Diagrama de secuencia FSD-UC-009 - Validar ticket QR offline y reconciliar
+  autonumber
+  participant G as Guardia
+  participant APP as App guardias
+  participant SQL as SQLite local
+  participant API as Core API
+  participant DB as PostgreSQL
+
+  Note over APP,SQL: Dataset descargado previamente (FSD-UC-007)
+  G->>APP: Escanea QR (sin red)
+  APP->>SQL: Consultar ticket por token
+  alt ticket no existe en dataset
+    SQL-->>APP: not found
+    APP-->>G: Rojo - desconocido
+  else ticket ya marcado usado localmente
+    SQL-->>APP: status=used
+    APP-->>G: Rojo - duplicado local
+  else válido localmente
+    SQL-->>APP: ticket activo
+    APP->>SQL: UPDATE ticket SET status=used, scan_pending=true
+    APP-->>G: Verde local + indicador "pendiente de sync"
+  end
+
+  Note over APP,API: Recupera conectividad
+  APP->>API: POST /access/sync (lote de escaneos pendientes)
+  API->>DB: Procesar lote idempotente
+  alt sin conflicto
+    DB-->>API: aplicado
+    API-->>APP: { results: [...], conflicts: [] }
+  else conflicto (doble uso)
+    DB-->>API: conflict
+    API-->>APP: { conflicts: [...] }
+    API->>DB: Marcar incidencia para revisión
+  end
+  APP->>SQL: Borrar marca scan_pending de los aplicados

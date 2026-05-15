@@ -1,0 +1,69 @@
+---
+description: Reglas de seguridad para emisión y validación del QR de tickets
+alwaysApply: true
+globs:
+  - "src/domain/tickets/**/*.ts"
+  - "src/domain/access/**/*.ts"
+  - "src/api/access/**/*.ts"
+  - "src/app/api/access/**/*.ts"
+  - "src/infra/tickets/qr/**/*.ts"
+  - "src/mobile/**/access/**/*.ts"
+---
+
+# QR Security — token firmado server-side, anti-replay y antifraude
+
+Todo el código que produce, persiste o verifica el `qr_token` de un ticket DEBE seguir estas reglas. Aplica al backend, al worker y al cliente móvil de guardias.
+
+## Reglas duras
+
+1. **Token firmado server-side, no QR plano**.
+   - Algoritmo autorizado: `HS256` con secret en KMS/Secrets Manager (ADR-0004).
+   - `payload` mínimo: `{ ticketId, eventId, organizationId, ticketTypeId, iat, nonce }`.
+   - **Prohibido** incluir PII en el payload (`name`, `email`, `phone`, `ci`).
+
+2. **Unicidad obligatoria**: `tickets.qr_token` con **constraint UNIQUE** + índice. Falla a nivel DB si se intenta duplicar.
+
+3. **Orden de validación al recibir un scan**:
+   ```
+   1) verifySignature(token)              -> falla rápida si firma inválida (E_QR_INVALID)
+   2) checkTokenExpiry(token)             -> sólo si exp existe
+   3) lookupTicket(payload.ticketId, ctx) -> respetando tenant isolation
+   4) checkSameEvent(ticket, scanEvent)   -> E_WRONG_EVENT
+   5) checkStatus(ticket)                 -> E_TICKET_USED si used
+   6) markUsed(ticket)                    -> atómico
+   7) writeAccessLog(...)                 -> SIEMPRE (BR-F-009)
+   ```
+   Cualquier inversión (DB primero, firma después) **filtra info al atacante** y es bloqueante.
+
+4. **Anti-replay**:
+   - el segundo scan del mismo token sobre un ticket `used` DEBE devolver `E_TICKET_USED` con motivo explícito.
+   - en offline, el cliente marca local `used` + `scan_pending = true`; el server reconcilia (no se descarta evidencia, `BR-F-010`).
+
+5. **Logs de auditoría** se escriben SIEMPRE, en éxito y fallo, con `result ∈ {valid, used, invalid, wrong_event, conflict}` y `mode ∈ {online, offline, reconciled}`.
+
+6. **Rotación de secrets**: documentar la rotación en ADR-0004 y verificar con test que tokens emitidos antes de la rotación siguen validándose hasta el corte declarado.
+
+7. **No imprimir el `qr_token` completo** en logs ni en mensajes de error visibles al usuario. Hash o truncar a 8 chars.
+
+## Trazabilidad
+
+| Fuente | Referencia |
+|--------|------------|
+| FSD §4 | `FSD-UC-005`, `FSD-UC-008`, `FSD-UC-009` |
+| FSD §5 | `BR-F-006`, `BR-F-007`, `BR-F-009`, `BR-F-010` |
+| FSD §10 | `NFR-005` (cifrado en tránsito), `NFR-006` (`< 1%` fraude) |
+| ADR | `docs/adr/0004-qr-dinamico-firmado-server-side.md` |
+| Skill | `docs/skills/qr-token-author.md` |
+| Diagramas | `docs/diagrams/seq_uc008_validar_qr_online.mmd`, `docs/diagrams/seq_uc009_validar_offline_sync.mmd` |
+
+## Tests obligatorios
+
+- token con firma alterada → `E_QR_INVALID` antes de tocar DB.
+- token válido sobre ticket `used` → `E_TICKET_USED` con `result = used` en `access_logs`.
+- scan offline duplicado en mismo dispositivo → uno aplicado, segundo rechazado local.
+- reconciliación con conflicto entre dos guardias → ambos logs preservados, ticket queda `conflict` para revisión.
+
+## Cuándo se aplica
+
+- Cursor activa esta regla en cualquier PR que toque los `globs` declarados arriba.
+- En revisión, usar la skill [`qr-token-author`](../../docs/skills/qr-token-author.md).

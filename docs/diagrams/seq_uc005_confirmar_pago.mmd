@@ -1,0 +1,27 @@
+sequenceDiagram
+  %% Diagrama de secuencia FSD-UC-005 - Confirmar pago y emitir ticket QR
+  autonumber
+  participant U as Asistente
+  participant BANK as Banco/Pasarela
+  participant API as Core API
+  participant SIG as Signature Verifier
+  participant WRK as Worker emisión
+  participant DB as PostgreSQL
+  participant NOT as Notification Service
+
+  U->>BANK: Paga con app bancaria
+  BANK->>API: POST /webhooks/payments (firmado)
+  API->>SIG: Verificar firma del proveedor
+  SIG-->>API: válido
+  API->>DB: Buscar orden por reference (lock)
+  alt callback duplicado
+    DB-->>API: ya confirmada
+    API-->>BANK: 200 OK (idempotente)
+  else nueva confirmación
+    API->>DB: payment.status=confirmed; order.status=confirmed
+    API->>WRK: job EmitTicket(orderId)
+    WRK->>DB: Generar ticket(s) con qr_token firmado
+    WRK->>NOT: Enviar ticket por email/WhatsApp
+    NOT-->>U: Ticket entregado
+    API-->>BANK: 200 OK
+  end

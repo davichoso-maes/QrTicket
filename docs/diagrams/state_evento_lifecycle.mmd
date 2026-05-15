@@ -1,0 +1,16 @@
+stateDiagram-v2
+  %% Ciclo de vida del Evento - FSD-UC-001/003 y AGENTS.md §9.2
+  [*] --> Draft: crear evento (UC-001)
+  Draft --> Active: publicar landing (UC-003)
+  Active --> SoldOut: cupos agotados
+  Active --> Cancelled: cancelación organizador
+  SoldOut --> Finished: fecha-fin alcanzada
+  Active --> Finished: fecha-fin alcanzada
+  Draft --> Cancelled: descarte previo a publicación
+  Finished --> [*]
+  Cancelled --> [*]
+
+  note right of Draft
+    BR-F-001: no se publica
+    sin al menos 1 ticket activo
+  end note
