@@ -52,6 +52,43 @@
 | Cada FSD-UC tiene contrato funcional | sí | 10/10 | OK |
 | Cada NFR tiene métrica y umbral | sí | 10/10 | OK |
 | ADRs registradas | >= 3 | 6 | OK |
+| Diagramas `.mmd` separados | >= 10 | 12 | OK |
+| Skills accionables | >= 5 | 8 (5 dominio + 3 transversales) | OK |
+| Cursor rules de dominio | >= 3 | 4 | OK |
+
+## Métricas AI-SDLC del release
+
+> Estas métricas miden la salud del pipeline humano + IA usado para producir el árbol documental. Se recalculan en cada release evaluable.
+
+### Definiciones
+
+- **Prompt Coverage** = `artefactos_con_prompt_registrado / artefactos_totales`.
+  Mide qué fracción del árbol documental tiene un prompt trazable en [`docs/PROMPT_MAPPING.md`](PROMPT_MAPPING.md).
+- **Spec Fidelity** = `requisitos_trazados_extremo_a_extremo / requisitos_totales`.
+  Mide qué fracción de los `BR` del BRD termina cubierta por `MRD-N → PRD-REQ → FSD-UC`.
+- **Traceability Density** = `enlaces_bidireccionales / nodos_documentales`.
+  Mide la densidad de enlaces de la matriz; valor `>= 2` indica trazabilidad rica (cada nodo ligado a 2+ vecinos).
+- **Gherkin Coverage** = `UC_con_Gherkin / UC_totales`.
+- **NFR Quantification Rate** = `NFR_con_metrica_y_umbral / NFR_totales`.
+
+### Resultado para `release/1.0.0`
+
+| Métrica | Fórmula | Numerador | Denominador | Valor | Umbral | Estado |
+|---------|---------|-----------|-------------|-------|--------|--------|
+| Prompt Coverage | `prompts / artefactos` | 10 entradas en `PROMPT_MAPPING.md` | 10 artefactos (BRD, MRD, PRD, FSD, 6 ADRs unificados, DTI, design, traceability, quality-gate, aportes) | **1.00** | >= 0.90 | ✅ |
+| Spec Fidelity | `BR_trazados / BR_totales` | 12 BR con cadena MRD→PRD→FSD | 12 BR en BRD §11 | **1.00** | >= 0.80 | ✅ |
+| Traceability Density | `enlaces / nodos` | 14 filas forward + 10 NFR + 12 BR-F refs ≈ 36 | 12 BR + 12 MRD-N + 16 PRD-REQ + 10 FSD-UC + 10 NFR ≈ 60 | **0.60** | >= 0.50 | ✅ |
+| Gherkin Coverage | `UC_con_Gherkin / UC_totales` | 10 | 10 | **1.00** | >= 0.90 | ✅ |
+| NFR Quantification Rate | `NFR_cuantif / NFR_totales` | 10 | 10 | **1.00** | >= 0.90 | ✅ |
+
+### Indicadores complementarios
+
+| Métrica | Valor | Comentario |
+|---------|-------|------------|
+| Diagramas/UC crítico | `4/10` con secuencia dedicada | UCs 004, 005, 008, 009 (los críticos del flujo pago/acceso) |
+| Reglas de negocio mapeadas a UC | `12/12` | FSD §5 cita UC afectados por cada `BR-F-NNN` |
+| ADRs aplicadas | `6/6` | todas en estado `applied` |
+| Skills cubriendo UCs críticos | `5/5` | UC-005/008/009 vía qr-token, UC-007/009 vía offline-sync, UC-004/005 vía payments |
 
 ## Reverse (IDs huérfanos)
 
@@ -64,3 +101,4 @@
 | Versión | Fecha | Autor | Cambio |
 |---------|-------|-------|--------|
 | v0.1 | 2026-05-13 | Equipo QrTicket | matriz inicial |
+| v0.2 | 2026-05-15 | Equipo QrTicket | añadidas métricas AI-SDLC (prompt coverage, spec fidelity, traceability density, gherkin, NFR); cobertura de diagramas/skills/rules |

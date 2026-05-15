@@ -1,0 +1,95 @@
+erDiagram
+  %% Modelo ER funcional - FSD §6.1
+  ORGANIZATIONS ||--o{ USERS : has
+  ORGANIZATIONS ||--o{ EVENTS : owns
+  EVENTS ||--o{ TICKET_TYPES : defines
+  EVENTS ||--o{ ORDERS : receives
+  ORDERS ||--o{ PAYMENTS : creates
+  ORDERS ||--o{ TICKETS : emits
+  EVENTS ||--o{ GUARD_ASSIGNMENTS : assigns
+  USERS ||--o{ GUARD_ASSIGNMENTS : receives
+  TICKETS ||--o{ ACCESS_LOGS : records
+  EVENTS ||--o{ ACCESS_LOGS : groups
+  USERS ||--o{ ACCESS_LOGS : scans
+  EVENTS ||--o{ OFFLINE_SYNC_SNAPSHOTS : snapshots
+
+  ORGANIZATIONS {
+    uuid id PK
+    string name
+    string slug
+    timestamp created_at
+  }
+  USERS {
+    uuid id PK
+    uuid organization_id FK
+    string email
+    string phone
+    enum role "super_admin|manager|guard|attendee"
+    enum status
+  }
+  EVENTS {
+    uuid id PK
+    uuid organization_id FK
+    string title
+    string slug
+    timestamp start_date
+    timestamp end_date
+    integer capacity
+    enum status "draft|active|sold_out|finished|cancelled"
+  }
+  TICKET_TYPES {
+    uuid id PK
+    uuid event_id FK
+    string name
+    decimal price
+    integer quota
+    timestamp sales_starts_at
+    timestamp sales_ends_at
+  }
+  ORDERS {
+    uuid id PK
+    uuid event_id FK
+    uuid buyer_user_id FK
+    decimal total
+    enum status "pending|confirmed|expired|rejected|refunded"
+    timestamp expires_at
+  }
+  PAYMENTS {
+    uuid id PK
+    uuid order_id FK
+    string reference UK
+    decimal amount
+    enum method "qr|libelula|tigo|transfer"
+    enum status "pending|confirmed|rejected|expired|refunded"
+  }
+  TICKETS {
+    uuid id PK
+    uuid order_id FK
+    uuid event_id FK
+    uuid ticket_type_id FK
+    string qr_token UK
+    enum status "active|used|cancelled|refunded|expired"
+    timestamp used_at
+  }
+  GUARD_ASSIGNMENTS {
+    uuid id PK
+    uuid event_id FK
+    uuid guard_user_id FK
+    boolean active
+  }
+  OFFLINE_SYNC_SNAPSHOTS {
+    uuid id PK
+    uuid event_id FK
+    string sync_version
+    timestamp created_at
+  }
+  ACCESS_LOGS {
+    uuid id PK
+    uuid ticket_id FK
+    uuid guard_user_id FK
+    uuid event_id FK
+    string gate
+    enum result "valid|used|invalid|wrong_event|conflict"
+    enum mode "online|offline|reconciled"
+    timestamp scanned_at
+  }

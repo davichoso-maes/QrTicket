@@ -1,0 +1,56 @@
+---
+description: Aislamiento multi-tenant obligatorio en todo endpoint, query y servicio
+alwaysApply: true
+globs:
+  - "src/api/**/*.ts"
+  - "src/app/api/**/*.ts"
+  - "src/server/**/*.ts"
+  - "src/domain/**/repository*.ts"
+  - "src/infra/persistence/**/*.ts"
+---
+
+# Tenant Isolation — multi-tenant by design
+
+QrTicket es multi-tenant. Un bug de aislamiento es **P0** (puede exponer eventos, órdenes y tickets de organizaciones ajenas). Esta regla aplica a backend, repositorios y queries.
+
+## Reglas duras (no negociables)
+
+1. **Toda query** sobre `events`, `orders`, `payments`, `tickets`, `access_logs`, `guard_assignments`, `ticket_types` DEBE incluir el predicado de aislamiento:
+   - `manager` → `WHERE organization_id = :ctx.organizationId`.
+   - `guard` → `WHERE EXISTS (SELECT 1 FROM guard_assignments ga WHERE ga.event_id = events.id AND ga.guard_user_id = :ctx.userId AND ga.active = true)`.
+   - `attendee` → `WHERE buyer_user_id = :ctx.userId` (o joins equivalentes).
+   - `super_admin` → permitido cross-tenant **sólo** si la operación queda registrada en `audit_logs` con razón explícita.
+
+2. **Status code correcto cuando el recurso existe pero no pertenece**:
+   - DEVOLVER **`404 Not Found`**, no `403`. `403` filtra la existencia del recurso a un atacante.
+
+3. **Nunca confiar en parámetros del cliente** (`?organization_id=...` enviado por el cliente). El tenant se deriva del JWT validado server-side.
+
+4. **Repositorios** no deben exponer `findById(id: string)` sin contexto. Firma esperada: `findById(id: string, ctx: TenantContext)`.
+
+5. **Cache** (Redis, memoria, React Query del lado server) DEBE incluir el `organization_id` en la clave. Nunca `events:active`, siempre `events:active:org:<orgId>`.
+
+6. **Logs**: no loguear identificadores de tenants ajenos al request en curso (`organizationId`, `eventId`, `orderId` de otra org).
+
+## Cuándo se aplica este chequeo
+
+- Se sugiere a Cursor que active esta regla en cada PR que toque los `globs` declarados arriba.
+- En revisión de PR, usar la skill [`tenant-isolation-reviewer`](../../docs/skills/tenant-isolation-reviewer.md) para producir la tabla de revisión obligatoria.
+
+## Tests obligatorios
+
+Cada endpoint nuevo DEBE tener un test que:
+
+- intenta acceder a un recurso de **otra organización** y verifica `404`;
+- intenta acceder sin JWT y verifica `401`;
+- (para `guard`) intenta acceder a un evento sin assignment y verifica `403`.
+
+## Trazabilidad
+
+| Fuente | Referencia |
+|--------|------------|
+| BRD §12 | `RB-07` aislamiento multi-tenant |
+| FSD §5 | `BR-F-008`, `BR-F-012` |
+| PRD §5.6 | `PRD-US-017` (guardia ve sólo asignados) |
+| ADR | `docs/adr/0001-monolito-modular-nextjs.md` |
+| Skill | `docs/skills/tenant-isolation-reviewer.md` |

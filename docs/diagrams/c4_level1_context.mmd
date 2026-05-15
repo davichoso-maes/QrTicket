@@ -1,0 +1,17 @@
+C4Context
+  title Diagrama de Contexto - QrTicket
+  Person(organizer, "Organizador", "Crea y opera eventos")
+  Person(attendee, "Asistente", "Compra y usa tickets")
+  Person(guard, "Guardia", "Valida accesos")
+  Person(admin, "Super Admin", "Administra la plataforma")
+  System(qrticket, "QrTicket", "Gestión de eventos, pagos, tickets y accesos")
+  System_Ext(bank, "Pasarela/Banco QR", "Confirma pagos QR Bolivia")
+  System_Ext(wa, "WhatsApp / Mensajería", "Notificaciones y soporte")
+  System_Ext(storage, "Storage", "Banners y assets")
+  Rel(organizer, qrticket, "Usa dashboard web", "HTTPS")
+  Rel(attendee, qrticket, "Compra tickets y consulta estado", "HTTPS")
+  Rel(guard, qrticket, "Sincroniza eventos y valida QR", "HTTPS")
+  Rel(admin, qrticket, "Gestiona tenants y seguridad", "HTTPS")
+  Rel(qrticket, bank, "Genera cobros y recibe confirmaciones", "HTTPS + webhook firmado")
+  Rel(qrticket, wa, "Envía tickets y mensajes", "HTTPS")
+  Rel(qrticket, storage, "Lee/escribe archivos", "HTTPS")

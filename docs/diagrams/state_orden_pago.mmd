@@ -1,0 +1,13 @@
+stateDiagram-v2
+  %% Ciclo de vida de la orden y su pago - FSD-UC-004/005
+  [*] --> OrdenPendiente: POST /orders
+  OrdenPendiente --> PagoPendiente: generar QR (UC-004)
+  PagoPendiente --> PagoConfirmado: webhook firmado (UC-005)
+  PagoPendiente --> Expirada: TTL agotado
+  PagoPendiente --> Rechazada: pasarela rechaza
+  PagoConfirmado --> TicketEmitido: job EmitTicket OK
+  TicketEmitido --> [*]
+  Expirada --> [*]
+  Rechazada --> [*]
+  PagoConfirmado --> Reembolsada: refund operativo
+  Reembolsada --> [*]

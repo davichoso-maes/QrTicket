@@ -1,0 +1,61 @@
+---
+description: Webhooks de pago e idempotencia obligatoria; firma siempre antes de DB
+alwaysApply: true
+globs:
+  - "src/api/webhooks/**/*.ts"
+  - "src/app/api/webhooks/**/*.ts"
+  - "src/infra/payments/**/*.ts"
+  - "src/domain/payments/**/*.ts"
+  - "src/domain/tickets/**/issuer*.ts"
+---
+
+# Payments & Webhooks — idempotencia + firma server-side
+
+Los pagos QR son el corazón financiero de QrTicket. Las reglas de este archivo son **obligatorias** en todo código que toque webhooks, emisión de tickets o adaptadores de proveedor.
+
+## Reglas duras
+
+1. **Firma antes de DB**. En todo handler de webhook:
+   ```
+   1) verifyProviderSignature(rawBody, headers)
+   2) parse(payload)
+   3) lookup en DB (con lock)
+   ```
+   Cualquier inversión (DB primero, firma después) es **bloqueante** en revisión.
+
+2. **Idempotencia por `(provider, reference)`**:
+   - guardar tabla `webhook_inbox(provider, reference, status, processed_at)`.
+   - segundo callback con el mismo `(provider, reference)` ya en estado `confirmed` aplicado → responder `200 OK` **sin** re-emitir tickets, **sin** disparar nuevas notificaciones.
+   - referencia: `BR-F-005` del FSD.
+
+3. **Emisión de tickets es idempotente por `orderId`**. El `Ticket Issuer` SIEMPRE verifica si ya existen tickets para esa orden antes de crear nuevos. Nunca duplicar `qr_token`.
+
+4. **Mapeo de estados** del proveedor a estados internos (`pending | confirmed | rejected | expired | refunded`) DEBE estar declarado en un mapper puro (no `if/else` regados en controladores). Estados desconocidos del proveedor caen en `pending` y disparan alerta — nunca asumir `confirmed`.
+
+5. **No marcar `confirmed` por timeout** ni por response `2xx` ambiguo del proveedor. Sólo confirmar con webhook firmado o `fetchStatus` que devuelva estado explícito.
+
+6. **No loguear** el `signature header` ni el secret del proveedor en claro. Loguear sólo `provider`, `reference`, `outcome`, `latency_ms`.
+
+7. **Retries con backoff exponencial + jitter** y un máximo razonable (`5` intentos en `24 h`) para `fetchStatus`. Nunca polling agresivo (`> 1 req/s`).
+
+## Trazabilidad
+
+| Fuente | Referencia |
+|--------|------------|
+| FSD §4 | `FSD-UC-004`, `FSD-UC-005` |
+| FSD §5 | `BR-F-003`, `BR-F-004`, `BR-F-005`, `BR-F-006` |
+| FSD §10 | `NFR-005` (HTTPS), `NFR-006` (antifraude `< 1%`) |
+| ADR | `docs/adr/0005-adaptadores-de-pago-y-webhooks.md` |
+| Skill | `docs/skills/payments-adapter-author.md` |
+
+## Tests obligatorios
+
+- doble callback con misma `reference` → un solo set de tickets.
+- callback con firma inválida → `401` y no toca DB.
+- callback con `reference` desconocida → `404` y log de auditoría, no crash.
+- `fetchStatus` con backend caído → `pending` se mantiene y alerta se dispara.
+
+## Cuándo se aplica
+
+- Activa en PRs que tocan `globs` arriba.
+- En revisión, usar la skill [`payments-adapter-author`](../../docs/skills/payments-adapter-author.md).

@@ -1,0 +1,21 @@
+stateDiagram-v2
+  %% Ciclo de vida del Ticket - FSD §6.2 (tickets.status)
+  [*] --> Active: emisión tras pago confirmado (UC-005)
+  Active --> Used: validación QR exitosa (UC-008/UC-009)
+  Active --> Cancelled: cancelación administrativa
+  Active --> Refunded: reembolso post-confirmación
+  Active --> Expired: evento finalizó sin uso
+  Used --> [*]
+  Cancelled --> [*]
+  Refunded --> [*]
+  Expired --> [*]
+
+  note right of Active
+    Invariante BR-F-006:
+    qr_token único y firmado server-side
+  end note
+  note right of Used
+    Invariante BR-F-007:
+    no se permite re-validación
+    salvo override administrativo
+  end note
