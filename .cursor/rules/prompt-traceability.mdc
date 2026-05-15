@@ -1,0 +1,61 @@
+---
+description: Trazabilidad obligatoria prompt -> código en prompt_mappings.md
+alwaysApply: true
+---
+
+# Trazabilidad Prompt -> Código
+
+Todo prompt del usuario que produzca cambios en el repositorio DEBE registrar una entrada en `prompt_mappings.md` antes o como parte de aplicar los cambios. Este registro es append-only y se inspira en ALCOA+ e IEEE 828.
+
+## Cuándo registrar
+
+Registrar SI el prompt produce:
+- Cambios en código fuente, esquemas SQL o configuración.
+- Creación, modificación o borrado de archivos versionados.
+- Cambios en documentación versionada (incluida esta regla).
+
+NO registrar para:
+- Preguntas conceptuales sin cambios ("explícame X").
+- Exploración o lectura de código.
+- Comandos de solo lectura.
+
+## Procedimiento
+
+1. Leer `prompt_mappings.md` y calcular el siguiente ID `PM-YYYYMMDD-NNN` (NNN reinicia cada día, secuencial 001..999).
+2. Añadir una nueva entrada al final de la sección `## Entradas` con todos los campos requeridos.
+3. Añadir la fila correspondiente en la tabla `## Índice`.
+4. Aplicar los cambios al repositorio.
+5. Al confirmar el commit, completar el campo `Commit:` con el SHA corto.
+6. **Append-only**: nunca editar entradas previas. Para corregir, crear una nueva entrada con `Intent: fix` o `Estado: superseded` que cite la entrada anterior por ID.
+
+## Campos requeridos por entrada
+
+- `Autor`: usuario humano que emitió el prompt.
+- `Agente`: cliente/modelo que ejecutó (p. ej. `cursor / claude-opus-4.7`).
+- `Timestamp`: ISO 8601 con offset, p. ej. `2026-05-10T11:50:00-04:00`.
+- `Intent`: uno de `feature | fix | schema | refactor | docs | chore | security`.
+- `Prompt original`: texto verbatim entre comillas o blockquote.
+- `Archivos afectados`: lista de paths relativos.
+- `Resumen de cambios`: bullets concisos.
+- `Commit`: SHA corto o `(pendiente)`.
+- `Verificación`: `applied | pending | failed | reverted`.
+- `Notas`: decisiones, alternativas descartadas, referencias a entradas previas.
+
+## Ejemplo mínimo
+
+```markdown
+### PM-20260510-002
+- Autor: tercere
+- Agente: cursor / claude-opus-4.7
+- Timestamp: 2026-05-10T12:30:00-04:00
+- Intent: schema
+- Prompt original:
+  > Agrega tabla pacientes con campos id, nombre, fecha_nacimiento.
+- Archivos afectados:
+  - libre-ehr-database.sql
+- Resumen de cambios:
+  - Nueva tabla `pacientes` con PK `id` y restricciones NOT NULL.
+- Commit: (pendiente)
+- Verificación: applied
+- Notas: ninguno
+```
