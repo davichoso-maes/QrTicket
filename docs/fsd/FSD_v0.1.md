@@ -9,12 +9,12 @@
 | Producto | Qrticket |
 | Release evaluable | `release/1.0.0` |
 | Sesión asociada | `S6` |
-| Fecha de cierre | `13/05/2026` |
-| Integrantes | `Antonio Ovando, @carlicode, Carla Marcela Florida Roman` |
+| Fecha de cierre | `17/05/2026` |
+| Integrantes | `Antonio Ovando (@davichoso), @carlicode, Carla Marcela Florida Roman` |
 | Versión del documento | `v0.1` |
-| Fecha | `13/05/2026` |
+| Fecha | `17/05/2026` |
 | Autores | Equipo QrTicket |
-| Revisores | Docente + 1 grupo par |
+| Revisores | Docente + @eteceros |
 | Estado | Borrador |
 | Trazabilidad a PRD | `docs/prd/PRD_v0.1.md` |
 
@@ -654,3 +654,4 @@ erDiagram
 | Versión | Fecha | Autor | Cambio |
 |---------|-------|-------|--------|
 | v0.1 | 13/05/2026 | Equipo QrTicket | Versión inicial del FSD con 10 casos de uso críticos |
+| v0.2 | 17/05/2026 | @carlicode | Actualización de metadata: fecha, integrantes y revisores |
